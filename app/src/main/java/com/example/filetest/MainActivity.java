@@ -4,81 +4,81 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
-import android.widget.TextView;
-import android.widget.Toast;
+import android.widget.ListView;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
+import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
-    private final static String FILE_NAME_1 = "file_1.txt";
-    private final static String FILE_NAME_2 = "file_2.txt";
-    public static final String ROOT_DIR = "root";
-    private EditText editText;
-    private TextView textView;
-    private TextView textViewListFiles;
-    private File file_1;
-    private File file_2;
+    private EditText editTextFileContent;
+    private EditText editTextFileName;
+    private ListView listViewFiles;
+    private ArrayList<String> fileArrayList;
+    private String fileName;
+    private String fileContent;
 
-    private File rootDir;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        editText = findViewById(R.id.editor);
-        textView = findViewById(R.id.text);
-        textViewListFiles = findViewById(R.id.textViewListFiles);
-        createFiles();
+        editTextFileContent = findViewById(R.id.editTextFileContent);
+        editTextFileName = findViewById(R.id.editTextFileName);
+        listViewFiles = findViewById(R.id.listViewFiles);
+        fileArrayList = new ArrayList<>();
+
+        showListFiles();
+
+
+        listViewFiles.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                fileName = fileArrayList.get(position);
+                readFile(view);
+                editTextFileName.setText(fileName);
+                editTextFileContent.setText(fileContent);
+            }
+        });
     }
 
     // сохранение файла
     public void onClickSaveFile(View view) {
-        try (FileOutputStream fileOutputStream = openFileOutput(FILE_NAME_2, MODE_PRIVATE)) { // MODE_PRIVATE - перезапись файла / MODE_APPEND - запись данных в конец файла
-            String text = editText.getText().toString() + "\n";
-            fileOutputStream.write(text.getBytes());
-            Toast.makeText(this, "file_2.getAbsolutePath(): " + file_2.getAbsolutePath(), Toast.LENGTH_SHORT).show();
-            showListFiles();
+        if (editTextFileName.getText() != null) {
+            fileName = editTextFileName.getText().toString().trim();
+        } else {
+            fileName = null;
+        }
+        try (FileOutputStream fileOutputStream = openFileOutput(fileName, MODE_PRIVATE)) { // MODE_PRIVATE - перезапись файла / MODE_APPEND - запись данных в конец файла
+            fileOutputStream.write(editTextFileContent.getText().toString().getBytes());
         } catch (Exception e) {
             e.printStackTrace();
         }
+
     }
 
     // чтение файла
-    public void onClickReadFile(View view) {
-        try (FileInputStream fileInputStream = openFileInput(FILE_NAME_2)) {
+    public void readFile(View view) {
+        try (FileInputStream fileInputStream = openFileInput(fileName)) {
             byte[] bytes = new byte[fileInputStream.available()];
             fileInputStream.read(bytes);
-            String text = new String(bytes);
-            textView.setText(text);
+            fileContent = new String(bytes);
         } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void createFiles() {
-        rootDir = new File(ROOT_DIR);
-        file_1 = new File(rootDir, FILE_NAME_1);
-        file_2 = new File(rootDir, FILE_NAME_2);
-        rootDir.mkdir();
-        try {
-            file_1.createNewFile();
-            file_2.createNewFile();
-        } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     private void showListFiles() {
         File[] filesArray = getFilesDir().listFiles();
-        StringBuffer stringBuffer = new StringBuffer();
         for (File f : filesArray) {
-            stringBuffer.append(f.getName()).append("\n");
+            fileArrayList.add(f.getName());
         }
-        textViewListFiles.setText(stringBuffer.toString());
+        ArrayAdapter<String> fileArrayAdapter = new ArrayAdapter<String>(getApplicationContext(), android.R.layout.simple_list_item_1, fileArrayList);
+        listViewFiles.setAdapter(fileArrayAdapter);
     }
 }
